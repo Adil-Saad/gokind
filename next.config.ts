@@ -3,6 +3,11 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   output: "standalone",
   reactCompiler: true,
+  experimental: {
+    serverActions: {
+      allowedOrigins: ['localhost:43000', 'localhost:3000', 'gokind.flatsync.app', 'https://gokind.flatsync.app', '*.flatsync.app'],
+    },
+  },
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "images.unsplash.com" },
