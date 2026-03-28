@@ -1,5 +1,6 @@
 'use server'
 
+import { revalidatePath } from 'next/cache'
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 
@@ -62,6 +63,8 @@ export async function createQuest(formData: FormData) {
     redirect('/post?message=' + encodeURIComponent(error.message))
   }
 
+  revalidatePath('/browse')
+  revalidatePath('/map')
   redirect('/browse')
 }
 

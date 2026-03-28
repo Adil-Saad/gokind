@@ -2,7 +2,7 @@ import { createBrowserClient } from "@supabase/ssr"
 
 export function createClient() {
   const supabaseUrl = typeof window !== 'undefined' 
-    ? '/supabase' 
+    ? `${window.location.origin}/supabase`
     : process.env.NEXT_PUBLIC_SUPABASE_URL!
 
   return createBrowserClient(

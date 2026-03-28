@@ -12,18 +12,36 @@ const CATEGORY_EMOJI: Record<string, string> = {
 };
 
 function createMarkerIcon(status: string) {
-  const isOpen = status === 'open';
-  const color = isOpen ? '#8B5CF6' : '#34D1BF';
-  const glow = isOpen ? '#8B5CF680' : '#34D1BF80';
-
-  return L.divIcon({
-    className: '',
-    html: `
-      <div class="gk-marker" style="--c:${color};--g:${glow};">
+  // open = pulsing purple, active = teal orbit (no expand pulse), completed = solid green
+  if (status === 'open') {
+    return L.divIcon({
+      className: '',
+      html: `<div class="gk-marker" style="--c:#8B5CF6;--g:#8B5CF680;">
         <div class="gk-ring gk-ring1"></div>
         <div class="gk-ring gk-ring2"></div>
         <div class="gk-core"></div>
       </div>`,
+      iconSize: [30, 30],
+      iconAnchor: [15, 15],
+    });
+  }
+  if (status === 'active') {
+    return L.divIcon({
+      className: '',
+      html: `<div class="gk-marker" style="--c:#34D1BF;--g:#34D1BF80;">
+        <div class="gk-orbit"></div>
+        <div class="gk-core"></div>
+      </div>`,
+      iconSize: [30, 30],
+      iconAnchor: [15, 15],
+    });
+  }
+  // completed
+  return L.divIcon({
+    className: '',
+    html: `<div class="gk-marker" style="--c:#22c55e;--g:#22c55e60;">
+      <div class="gk-core gk-done"></div>
+    </div>`,
     iconSize: [30, 30],
     iconAnchor: [15, 15],
   });
@@ -58,6 +76,11 @@ export default function KindnessPulseMap() {
           box-shadow:0 0 12px 4px var(--g), 0 0 4px 1px var(--c);
           z-index:3;
         }
+        .gk-done::after {
+          content:'✓'; position:absolute; top:50%; left:50%;
+          transform:translate(-50%,-50%);
+          font-size:8px; font-weight:900; color:#0A1628;
+        }
         .gk-ring {
           position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) scale(0);
           border-radius:50%; border:2px solid var(--c);
@@ -66,9 +89,20 @@ export default function KindnessPulseMap() {
         }
         .gk-ring1 { width:30px; height:30px; animation-delay:0s; }
         .gk-ring2 { width:30px; height:30px; animation-delay:0.8s; }
+        .gk-orbit {
+          position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+          width:26px; height:26px; border-radius:50%;
+          border:2px dashed var(--c); opacity:0.7;
+          animation: gkOrbit 3s linear infinite;
+          z-index:1;
+        }
         @keyframes gkPulse {
           0%   { transform:translate(-50%,-50%) scale(0.4); opacity:0.9; }
           100% { transform:translate(-50%,-50%) scale(2.2); opacity:0; }
+        }
+        @keyframes gkOrbit {
+          from { transform:translate(-50%,-50%) rotate(0deg); }
+          to   { transform:translate(-50%,-50%) rotate(360deg); }
         }
       `;
       document.head.appendChild(style);
@@ -117,10 +151,17 @@ export default function KindnessPulseMap() {
         {quests.map((q) => (
           <Marker key={q.id} position={[q.lat, q.lng]} icon={createMarkerIcon(q.status)}>
             <Popup>
-              <div className="text-gray-900">
-                <strong>{CATEGORY_EMOJI[q.category] || '✨'} {q.title}</strong><br />
-                <span className="text-gray-600 capitalize">Status: {q.status}</span><br />
-                <span className="text-gray-600">
+              <div style={{fontFamily:'sans-serif',padding:'4px'}}>
+                <strong style={{fontSize:'13px'}}>{CATEGORY_EMOJI[q.category] || '✨'} {q.title}</strong>
+                <br />
+                <span style={{display:'inline-block',marginTop:'4px',padding:'2px 8px',borderRadius:'999px',fontSize:'11px',fontWeight:600,
+                  background: q.status==='open' ? '#8B5CF620' : q.status==='active' ? '#34D1BF20' : '#22c55e20',
+                  color: q.status==='open' ? '#8B5CF6' : q.status==='active' ? '#34D1BF' : '#22c55e',
+                }}>
+                  {q.status==='open' ? '⏳ Waiting for someone to accept' : q.status==='active' ? '🔄 In progress — awaiting completion' : '✅ Done!'}
+                </span>
+                <br />
+                <span style={{fontSize:'11px',color:'#888',marginTop:'4px',display:'block'}}>
                   {q.reward_type === 'money' ? `£${q.price}` : `${q.price || 50} pts`}
                 </span>
               </div>
