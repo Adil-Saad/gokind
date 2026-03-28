@@ -3,14 +3,10 @@ services:
   web:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: dockerfile
     ports:
       - "3000:3000"
     environment:
-      - NEXT_PUBLIC_SUPABASE_URL=http://supabase_kong_gokind:8000
-      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
-    depends_on:
-      - app-db
-
-  # Note: Supabase CLI handles its own containers, 
-  # but we can link them here if needed.
+      # Use localhost or host.docker.internal depending on OS to reach Supabase
+      - NEXT_PUBLIC_SUPABASE_URL=http://host.docker.internal:54321
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
