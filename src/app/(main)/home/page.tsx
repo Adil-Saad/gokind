@@ -51,7 +51,7 @@ export default function HomePage() {
         </div>
 
         <div className="mt-12 flex flex-col items-center gap-3">
-          <p className="text-white/80 text-sm font-semibold italic max-w-[260px] leading-relaxed">
+          <p className="text-white/80 text-sm font-semibold italic max-w-[260px] leading-relaxed text-center">
             &ldquo;Cities measure traffic and crime.<br />We measure kindness.&rdquo;
           </p>
           <div className="flex items-center gap-2 text-gray-500 text-sm">

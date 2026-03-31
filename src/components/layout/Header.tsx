@@ -1,7 +1,7 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import { Bell, X, MapPin } from 'lucide-react';
+import { Bell, X } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/utils/supabase/client';
 
@@ -10,7 +10,7 @@ interface Notification {
   message: string;
   time: string;
   read: boolean;
-  type: 'new_quest' | 'accepted' | 'completed';
+  type: 'new_quest' | 'accepted';
 }
 
 export default function Header() {
@@ -19,6 +19,7 @@ export default function Header() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const panelRef = useRef<HTMLDivElement>(null);
+  const userIdRef = useRef<string | null>(null);
   const supabaseRef = useRef(createClient());
 
   let title = 'GoKind';
@@ -27,26 +28,34 @@ export default function Header() {
   if (pathname === '/post') title = 'Create Quest';
   if (pathname === '/profile') title = 'Profile';
   if (pathname === '/home') title = 'GoKind 🍃';
+  if (pathname === '/rank') title = '🏆 Leaderboard';
+  if (pathname === '/admin') title = '📊 Dashboard';
 
-  // Listen for new quests via Supabase realtime
   useEffect(() => {
     const supabase = supabaseRef.current;
+
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      userIdRef.current = user?.id ?? null;
+    });
+
     const channel = supabase
-      .channel('notifications')
+      .channel('notif-quests')
       .on('postgres_changes', {
         event: 'INSERT',
         schema: 'public',
         table: 'quests',
       }, (payload) => {
-        const quest = payload.new as { title: string; category: string; id: string };
-        const newNotification: Notification = {
+        const quest = payload.new as { id: string; title: string; created_by: string };
+        if (quest.created_by === userIdRef.current) return;
+
+        const notif: Notification = {
           id: quest.id,
-          message: `New quest posted: "${quest.title}"`,
-          time: 'Just now',
+          message: `🗺️ New quest nearby: "${quest.title}"`,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           read: false,
           type: 'new_quest',
         };
-        setNotifications(prev => [newNotification, ...prev].slice(0, 20));
+        setNotifications(prev => [notif, ...prev].slice(0, 30));
         setUnreadCount(c => c + 1);
       })
       .on('postgres_changes', {
@@ -54,25 +63,26 @@ export default function Header() {
         schema: 'public',
         table: 'quests',
       }, (payload) => {
-        const quest = payload.new as { title: string; status: string; id: string };
-        if (quest.status === 'active') {
-          const notification: Notification = {
+        const quest = payload.new as { id: string; title: string; status: string; created_by: string };
+        if (quest.status === 'active' && quest.created_by === userIdRef.current) {
+          const notif: Notification = {
             id: `${quest.id}-accepted`,
-            message: `Quest accepted: "${quest.title}"`,
-            time: 'Just now',
+            message: `✅ Someone accepted your quest: "${quest.title}"`,
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             read: false,
             type: 'accepted',
           };
-          setNotifications(prev => [notification, ...prev].slice(0, 20));
+          setNotifications(prev => [notif, ...prev].slice(0, 30));
           setUnreadCount(c => c + 1);
         }
       })
-      .subscribe();
+      .subscribe((status) => {
+        console.log('[Notif] Realtime status:', status);
+      });
 
     return () => { supabase.removeChannel(channel); };
   }, []);
 
-  // Close panel when clicking outside
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
@@ -83,9 +93,12 @@ export default function Header() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showNotifications]);
 
-  const markAllRead = () => {
-    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-    setUnreadCount(0);
+  const openPanel = () => {
+    setShowNotifications(v => !v);
+    if (!showNotifications) {
+      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+      setUnreadCount(0);
+    }
   };
 
   return (
@@ -95,23 +108,22 @@ export default function Header() {
 
         <div className="relative" ref={panelRef}>
           <button
-            onClick={() => { setShowNotifications(v => !v); if (!showNotifications) markAllRead(); }}
+            onClick={openPanel}
             className="text-gray-300 hover:text-white transition-colors relative p-2 -mr-2 min-w-[44px] min-h-[44px] flex items-center justify-center"
           >
             <Bell size={22} />
             {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-[#34D1BF] text-[#0A1628] text-[10px] font-bold rounded-full flex items-center justify-center ring-2 ring-[#0A1628]">
+              <span className="absolute top-0 right-0 min-w-[18px] h-[18px] px-1 bg-[#34D1BF] text-[#0A1628] text-[10px] font-bold rounded-full flex items-center justify-center ring-2 ring-[#0A1628] animate-bounce">
                 {unreadCount > 9 ? '9+' : unreadCount}
               </span>
             )}
           </button>
 
-          {/* Notification Dropdown */}
           {showNotifications && (
             <div className="absolute right-0 top-12 w-[calc(100vw-32px)] max-w-80 bg-gray-900 border border-gray-700 rounded-2xl shadow-2xl overflow-hidden z-[100]">
               <div className="flex items-center justify-between px-4 py-3 border-b border-gray-700">
                 <span className="text-sm font-bold text-white">Notifications</span>
-                <button onClick={() => setShowNotifications(false)} className="text-gray-500 hover:text-white">
+                <button onClick={() => setShowNotifications(false)} className="text-gray-500 hover:text-white p-1">
                   <X size={16} />
                 </button>
               </div>
@@ -120,24 +132,18 @@ export default function Header() {
                 <div className="px-4 py-8 text-center text-gray-500 text-sm">
                   <Bell size={32} className="mx-auto mb-2 opacity-30" />
                   <p>No notifications yet.</p>
-                  <p className="text-xs mt-1">Post a quest to see updates here!</p>
+                  <p className="text-xs mt-1">When someone posts a quest nearby, you&apos;ll see it here!</p>
                 </div>
               ) : (
-                <div className="max-h-80 overflow-y-auto">
+                <div className="max-h-80 overflow-y-auto divide-y divide-gray-800/50">
                   {notifications.map((n) => (
-                    <div
-                      key={n.id}
-                      className={`flex items-start gap-3 px-4 py-3 border-b border-gray-800/50 last:border-0 ${!n.read ? 'bg-[#34D1BF]/5' : ''}`}
-                    >
-                      <div className={`w-2 h-2 mt-1.5 rounded-full shrink-0 ${
-                        n.type === 'new_quest' ? 'bg-[#8B5CF6]' :
-                        n.type === 'accepted' ? 'bg-[#34D1BF]' :
-                        'bg-green-400'
-                      }`} />
+                    <div key={n.id} className={`flex items-start gap-3 px-4 py-3 ${!n.read ? 'bg-[#34D1BF]/5' : ''}`}>
+                      <div className={`w-2 h-2 mt-1.5 rounded-full shrink-0 ${n.type === 'accepted' ? 'bg-[#34D1BF]' : 'bg-[#8B5CF6]'}`} />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm text-gray-200 leading-snug">{n.message}</p>
                         <p className="text-xs text-gray-500 mt-0.5">{n.time}</p>
                       </div>
+                      {!n.read && <span className="w-2 h-2 rounded-full bg-[#34D1BF] shrink-0 mt-1.5" />}
                     </div>
                   ))}
                 </div>

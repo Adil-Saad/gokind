@@ -2,17 +2,17 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Map, Layers, PlusCircle, User } from 'lucide-react';
+import { Home, Layers, Map, Trophy, BarChart3 } from 'lucide-react';
 
 export default function BottomNav() {
   const pathname = usePathname();
 
   const navItems = [
     { name: 'Home', href: '/home', icon: Home },
-    { name: 'Browse', href: '/browse', icon: Layers },
-    { name: 'Post', href: '/post', icon: PlusCircle },
+    { name: 'Quests', href: '/browse', icon: Layers },
     { name: 'Map', href: '/map', icon: Map },
-    { name: 'Profile', href: '/profile', icon: User },
+    { name: 'Rank', href: '/rank', icon: Trophy },
+    { name: 'Admin', href: '/admin', icon: BarChart3 },
   ];
 
   return (
