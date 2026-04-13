@@ -7,7 +7,7 @@
 #    2. Applies database migrations
 #    3. Builds and runs the Next.js web app in Docker
 #
-#  After startup, the app is live at http://localhost:3000
+#  After startup, the app is live at http://localhost:43000
 #  Supabase Studio is at http://localhost:54323
 # ============================================================
 
